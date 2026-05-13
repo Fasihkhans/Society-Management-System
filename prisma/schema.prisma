@@ -1,0 +1,201 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleName {
+  ADMIN
+  STREET_REP
+}
+
+enum HouseStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ResidentType {
+  OWNER
+  TENANT
+}
+
+enum DueStatus {
+  PAID
+  PARTIAL
+  PENDING
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  EASYPAISA
+  JAZZCASH
+  OTHER
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        RoleName @unique
+  description String?
+  users       User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model User {
+  id                 String              @id @default(cuid())
+  name               String
+  email              String              @unique
+  passwordHash       String
+  roleId             String
+  role               Role                @relation(fields: [roleId], references: [id])
+  assignedStreetId   String?             @unique
+  assignedStreet     Street?             @relation("AssignedStreet", fields: [assignedStreetId], references: [id])
+  isActive           Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  deletedAt          DateTime?
+  paymentsCollected  Payment[]           @relation("CollectedBy")
+  createdFeeCycles   MonthlyFeeCycle[]   @relation("CreatedBy")
+  balanceAdjustments BalanceAdjustment[] @relation("AdjustedBy")
+  auditLogs          AuditLog[]
+}
+
+model Street {
+  id             String   @id @default(cuid())
+  number         String   @unique
+  name           String
+  notes          String?
+  isActive       Boolean  @default(true)
+  representative User?    @relation("AssignedStreet")
+  houses         House[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+}
+
+model House {
+  id                 String              @id @default(cuid())
+  streetId           String
+  street             Street              @relation(fields: [streetId], references: [id])
+  houseNumber        String
+  ownerName          String
+  cnic               String
+  mobile             String
+  ownerEmail         String?
+  status             HouseStatus         @default(ACTIVE)
+  monthlyFeeAmount   Decimal             @db.Decimal(12, 2)
+  openingBalance     Decimal             @default(0) @db.Decimal(12, 2)
+  notes              String?
+  residents          Resident[]
+  feeDues            FeeDue[]
+  balanceAdjustments BalanceAdjustment[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  deletedAt          DateTime?
+
+  @@unique([streetId, houseNumber])
+}
+
+model Resident {
+  id                  String       @id @default(cuid())
+  houseId             String
+  house               House        @relation(fields: [houseId], references: [id])
+  fullName            String
+  residentType        ResidentType
+  cnic                String
+  mobile              String
+  email               String?
+  isPrimary           Boolean      @default(false)
+  verificationEnabled Boolean      @default(true)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  deletedAt           DateTime?
+}
+
+model MonthlyFeeCycle {
+  id          String   @id @default(cuid())
+  month       Int
+  year        Int
+  title       String
+  notes       String?
+  createdById String
+  createdBy   User     @relation("CreatedBy", fields: [createdById], references: [id])
+  generatedAt DateTime @default(now())
+  feeDues     FeeDue[]
+
+  @@unique([month, year])
+}
+
+model FeeDue {
+  id                 String               @id @default(cuid())
+  cycleId            String
+  cycle              MonthlyFeeCycle      @relation(fields: [cycleId], references: [id])
+  houseId            String
+  house              House                @relation(fields: [houseId], references: [id])
+  amountDue          Decimal              @db.Decimal(12, 2)
+  openingBalance     Decimal              @default(0) @db.Decimal(12, 2)
+  totalDue           Decimal              @db.Decimal(12, 2)
+  amountReceived     Decimal              @default(0) @db.Decimal(12, 2)
+  balanceRemaining   Decimal              @db.Decimal(12, 2)
+  status             DueStatus            @default(PENDING)
+  dueDate            DateTime
+  payments           Payment[]
+  balanceAdjustments BalanceAdjustment[]
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  deletedAt          DateTime?
+
+  @@unique([cycleId, houseId])
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  feeDueId      String
+  feeDue        FeeDue        @relation(fields: [feeDueId], references: [id])
+  amount        Decimal       @db.Decimal(12, 2)
+  paymentDate   DateTime
+  paymentMethod PaymentMethod
+  notes         String?
+  collectedById String
+  collectedBy   User          @relation("CollectedBy", fields: [collectedById], references: [id])
+  receipt       Receipt?
+  createdAt     DateTime      @default(now())
+  deletedAt     DateTime?
+}
+
+model Receipt {
+  id                  String   @id @default(cuid())
+  paymentId           String   @unique
+  payment             Payment  @relation(fields: [paymentId], references: [id])
+  receiptNumber       String   @unique
+  balanceAfterPayment Decimal  @db.Decimal(12, 2)
+  createdAt           DateTime @default(now())
+}
+
+model BalanceAdjustment {
+  id           String   @id @default(cuid())
+  houseId      String
+  house        House    @relation(fields: [houseId], references: [id])
+  feeDueId     String?
+  feeDue       FeeDue?  @relation(fields: [feeDueId], references: [id])
+  amount       Decimal  @db.Decimal(12, 2)
+  reason       String
+  adjustedById String
+  adjustedBy   User     @relation("AdjustedBy", fields: [adjustedById], references: [id])
+  createdAt    DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  entityType String
+  entityId   String
+  action     String
+  details    Json?
+  createdAt  DateTime @default(now())
+}

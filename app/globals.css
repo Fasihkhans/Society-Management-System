@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 42 45% 96%;
+    --foreground: 155 28% 18%;
+    --card: 0 0% 100%;
+    --card-foreground: 155 28% 18%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 155 28% 18%;
+    --primary: 160 45% 31%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 38 55% 92%;
+    --secondary-foreground: 155 28% 18%;
+    --muted: 42 28% 92%;
+    --muted-foreground: 155 13% 40%;
+    --accent: 41 52% 84%;
+    --accent-foreground: 155 28% 18%;
+    --destructive: 8 68% 54%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 151 51% 33%;
+    --success-foreground: 0 0% 100%;
+    --warning: 39 93% 42%;
+    --warning-foreground: 0 0% 100%;
+    --border: 42 24% 85%;
+    --input: 42 24% 85%;
+    --ring: 160 45% 31%;
+    --radius: 1rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply min-h-screen bg-background font-sans text-foreground antialiased;
+    background-image:
+      radial-gradient(circle at top left, rgba(255, 255, 255, 0.95), transparent 32%),
+      linear-gradient(180deg, rgba(232, 244, 237, 0.3) 0%, rgba(247, 243, 234, 0.9) 32%, rgba(248, 245, 239, 1) 100%);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply tracking-tight;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+}
+
+@layer components {
+  .app-surface {
+    @apply rounded-3xl border bg-card shadow-soft;
+  }
+
+  .table-wrap {
+    @apply overflow-hidden rounded-3xl border bg-card shadow-soft;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+  }
+}
